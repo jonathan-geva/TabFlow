@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="popup.css">
+    <title>Web Clipper</title>
+</head>
+<body>
+    <div class="background"></div>
+    
+    <div id="popup-container">
+        <div id="settings-panel" class="settings-panel hidden">
+            <h2>Settings</h2>
+            <div class="settings-form">
+                <div class="form-group">
+                    <label for="notion-api-url">Notion API URL</label>
+                    <input type="text" id="notion-api-url" class="settings-input" placeholder="https://api.notion.com/v1">
+                </div>
+                <div class="form-group">
+                    <label for="notion-database-id">Notion Database ID</label>
+                    <input type="text" id="notion-database-id" class="settings-input" placeholder="your-database-id">
+                </div>
+                <div class="form-group">
+                    <label for="notion-api-key">Notion API Key</label>
+                    <input type="password" id="notion-api-key" class="settings-input" placeholder="secret_your_notion_api_key">
+                </div>
+                <div class="form-group">
+                    <label for="gemini-api-key">Gemini API Key (for AI enhancement with 2.0 flash model)</label>
+                    <input type="password" id="gemini-api-key" class="settings-input" placeholder="Required for AI enhancement features">
+                </div>
+                <div class="form-group donation-container">
+                    <hr class="donation-divider">
+                    <a href="https://buymeacoffee.com/jonathan.g" target="_blank" class="donation-link">
+                        <svg class="coffee-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4v-2z"/>
+                        </svg>
+                        <span>If this extension helps you, consider buying me a coffee</span>
+                    </a>
+                </div>
+                <div class="settings-buttons">
+                    <button id="save-settings" class="settings-button save">Save Settings</button>
+                    <button id="back-button" class="settings-button back">Back</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="main-content" class="main-content">
+            <div id="info-preview" class="card">
+                <!-- Gathered information will be displayed here -->
+            </div>
+            
+            <div class="button-container">
+                <button id="confirm-button">
+                    <svg class="button-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/>
+                    </svg>
+                    <span>Save</span>
+                </button>
+                <div class="enhance-wrapper">
+                    <button id="ai-enhance-button" class="enhance-main-button" title="Enhance with AI">
+                        <svg class="button-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 16L12 15.45 7.77 18l1.12-4.81-3.73-3.23 4.92-.42L12 5l1.92 4.53 4.92.42-3.73 3.23L16.23 18z"/>
+                        </svg>
+                        <span>Enhance</span>
+                        <svg class="dropdown-arrow" width="10" height="10" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M7 10l5 5 5-5z"/>
+                        </svg>
+                    </button>
+                </div>
+                <button id="cancel-button">
+                    <svg class="button-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
+                    </svg>
+                    <span>Cancel</span>
+                </button>
+                <button id="settings-button" title="Settings">
+                    <svg class="button-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 15.5c1.93 0 3.5-1.57 3.5-3.5S13.93 8.5 12 8.5 8.5 10.07 8.5 12s1.57 3.5 3.5 3.5zm0-5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5z"/>
+                        <path d="M19.43 12.98c.04-.32.07-.64.07-.98 0-.34-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98 0 .33.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zm-7.43 2.52c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="enhance-options-modal" class="enhance-modal">
+        <div class="enhance-modal-content">
+            <div class="enhance-modal-header">
+                <span>Enhancement Style</span>
+                <span class="enhance-close">&times;</span>
+            </div>
+            <div class="enhance-modal-body">
+                <div class="enhance-option" data-style="standard">
+                    <div class="option-title">Standard</div>
+                    <div class="option-desc">Concise summary with relevant tags</div>
+                </div>
+                <div class="enhance-option" data-style="detailed">
+                    <div class="option-title">Detailed</div>
+                    <div class="option-desc">Comprehensive analysis with more tags</div>
+                </div>
+                <div class="enhance-option" data-style="key-points">
+                    <div class="option-title">Key Points</div>
+                    <div class="option-desc">Bullet-point format with main features</div>
+                </div>
+                <div class="enhance-option" data-style="technical">
+                    <div class="option-title">Technical</div>
+                    <div class="option-desc">Focus on technical aspects and capabilities</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="confirm-dialog" class="enhance-modal">
+        <div class="enhance-modal-content">
+            <div class="enhance-modal-header">
+                <span id="confirm-dialog-title">Confirm Enhancement</span>
+                <span class="confirm-close">&times;</span>
+            </div>
+            <div class="enhance-modal-body">
+                <p id="confirm-dialog-message" style="padding: 10px; text-align: center;"></p>
+                <div style="display: flex; gap: 8px; padding: 10px; justify-content: center;">
+                    <button id="confirm-dialog-ok" class="settings-button save">Enhance Again</button>
+                    <button id="confirm-dialog-cancel" class="settings-button back">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>
