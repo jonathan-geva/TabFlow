@@ -29,7 +29,7 @@ TabFlow makes it effortless to save and organize websites directly to your Notio
 ### Manual Installation (Developer Mode)
 1. Download or clone this repository:
    ```
-   git clone https://github.com/yourusername/tabflow.git
+   git clone https://github.com/jonathan-geva/TabFlow
    ```
 2. Open Chrome and navigate to `chrome://extensions/`
 3. Enable "Developer mode" using the toggle in the top-right corner
