@@ -2,7 +2,7 @@
 
 A browser extension that helps you capture and organize web content directly in your Notion database. TabFlow transforms how you collect and manage web resources with minimal effort.
 
-![TabFlow Logo](icons/icon128.png)
+![TabFlow Logo](icons/TabFlow.png)
 
 ## Overview
 
