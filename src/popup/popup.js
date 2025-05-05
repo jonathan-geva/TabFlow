@@ -1,3 +1,7 @@
+// Import the OpenAI API utility and model providers
+import { enhanceWithOpenAI } from '../utils/openai-api.js';
+import { fetchModelsForProvider, fetchGeminiModels } from '../utils/model-providers.js';
+
 document.addEventListener('DOMContentLoaded', function () {
     // UI elements
     const previewContainer = document.getElementById('info-preview');
@@ -12,6 +16,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const notionDatabaseIdInput = document.getElementById('notion-database-id');
     const notionApiKeyInput = document.getElementById('notion-api-key');
     const geminiApiKeyInput = document.getElementById('gemini-api-key');
+    const openaiApiKeyInput = document.getElementById('openai-api-key');
+    const modelProviderSelect = document.getElementById('model-provider');
+    const geminiModelSelect = document.getElementById('gemini-model');
+    const openaiModelSelect = document.getElementById('openai-model');
+    const geminiSettings = document.getElementById('gemini-settings');
+    const openaiSettings = document.getElementById('openai-settings');
     const mainContent = document.getElementById('main-content');
     
     // Store page info for later use
@@ -64,6 +74,123 @@ document.addEventListener('DOMContentLoaded', function () {
         return notification;
     }
     
+    // Function to create a styled confirmation notification
+    function showStyledConfirmNotification(message, options = {}) {
+        const {
+            type = 'info',
+            icon = 'star', // 'star', 'info', or custom SVG path
+            primaryBtnText = 'Confirm',
+            secondaryBtnText = 'Cancel',
+            onPrimaryClick = () => {},
+            onSecondaryClick = () => {}
+        } = options;
+        
+        // Create base notification
+        const notification = showNotification(message, type, 0);
+        
+        // Apply consistent styling
+        notification.style.maxWidth = 'none';
+        notification.style.width = 'calc(100% - 20px)';
+        notification.style.borderRadius = 'var(--border-radius)';
+        notification.style.backgroundColor = 'var(--card-bg)';
+        notification.style.border = '1px solid var(--border-color)';
+        notification.style.boxShadow = '0 4px 12px var(--glass-shadow), inset 0 1px 1px var(--glass-highlight)';
+        
+        // Get and style content
+        const notificationContent = notification.querySelector('.notification-content');
+        notificationContent.style.fontSize = '13px';
+        notificationContent.style.color = 'var(--text-primary)';
+        notificationContent.style.textAlign = 'center';
+        notificationContent.style.padding = '5px 0';
+        
+        // Add icon
+        const iconContainer = document.createElement('div');
+        iconContainer.style.display = 'flex';
+        iconContainer.style.justifyContent = 'center';
+        iconContainer.style.marginBottom = '8px';
+        
+        // Choose the appropriate icon
+        let iconSvg = '';
+        if (icon === 'star') {
+            iconSvg = `<path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 16L12 15.45 7.77 18l1.12-4.81-3.73-3.23 4.92-.42L12 5l1.92 4.53 4.92.42-3.73 3.23L16.23 18z"/>`;
+        } else if (icon === 'info') {
+            iconSvg = `<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>`;
+        } else {
+            // Custom icon path
+            iconSvg = icon;
+        }
+        
+        const enhanceIcon = document.createElement('div');
+        enhanceIcon.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="color: var(--primary-color)">
+                ${iconSvg}
+            </svg>
+        `;
+        
+        iconContainer.appendChild(enhanceIcon);
+        
+        // Wrap the text content in a styled div
+        const textContent = notificationContent.textContent;
+        notificationContent.textContent = '';
+        
+        const textContainer = document.createElement('div');
+        textContainer.textContent = textContent;
+        textContainer.style.fontWeight = '500';
+        textContainer.style.margin = '8px 0';
+        
+        // Create button container
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.display = 'flex';
+        buttonContainer.style.gap = '10px';
+        buttonContainer.style.marginTop = '12px';
+        buttonContainer.style.justifyContent = 'center';
+        
+        // Create primary button
+        const primaryBtn = document.createElement('button');
+        primaryBtn.textContent = primaryBtnText;
+        primaryBtn.className = 'notification-button confirm';
+        primaryBtn.style.backgroundColor = 'var(--primary-color)';
+        primaryBtn.style.color = 'white';
+        primaryBtn.style.padding = '8px 16px';
+        primaryBtn.style.borderRadius = 'var(--border-radius)';
+        primaryBtn.style.fontWeight = '500';
+        primaryBtn.style.fontSize = '13px';
+        primaryBtn.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.2)';
+        
+        // Create secondary button
+        const secondaryBtn = document.createElement('button');
+        secondaryBtn.textContent = secondaryBtnText;
+        secondaryBtn.className = 'notification-button cancel';
+        secondaryBtn.style.backgroundColor = '#222';
+        secondaryBtn.style.color = '#ccc';
+        secondaryBtn.style.padding = '8px 16px';
+        secondaryBtn.style.borderRadius = 'var(--border-radius)';
+        secondaryBtn.style.fontWeight = '500';
+        secondaryBtn.style.fontSize = '13px';
+        secondaryBtn.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+        
+        // Rebuild the notification content
+        notificationContent.appendChild(iconContainer);
+        notificationContent.appendChild(textContainer);
+        buttonContainer.appendChild(primaryBtn);
+        buttonContainer.appendChild(secondaryBtn);
+        notificationContent.appendChild(buttonContainer);
+        
+        // Add event listeners
+        primaryBtn.addEventListener('click', () => {
+            removeNotification(notification);
+            onPrimaryClick();
+        });
+        
+        secondaryBtn.addEventListener('click', () => {
+            removeNotification(notification);
+            onSecondaryClick();
+        });
+        
+        // Return the notification
+        return notification;
+    }
+    
     function removeNotification(notification) {
         notification.classList.add('removing');
         setTimeout(() => {
@@ -94,13 +221,129 @@ document.addEventListener('DOMContentLoaded', function () {
     // Back button in settings
     backButton.addEventListener('click', showMainContent);
     
+    // Toggle provider settings visibility based on selection
+    modelProviderSelect.addEventListener('change', function() {
+        const provider = this.value;
+        updateProviderSettingsVisibility(provider);
+        
+        // Fetch models for the selected provider
+        populateModelDropdown(provider);
+    });
+    
+    // Function to update provider settings visibility
+    function updateProviderSettingsVisibility(provider) {
+        // Hide all provider settings
+        geminiSettings.classList.remove('active');
+        openaiSettings.classList.remove('active');
+        
+        // Show the selected provider's settings
+        if (provider === 'gemini') {
+            geminiSettings.classList.add('active');
+        } else if (provider === 'openai') {
+            openaiSettings.classList.add('active');
+        }
+    }
+    
+    // Function to populate model dropdown for selected provider
+    async function populateModelDropdown(provider, apiKey = null) {
+        const modelSelect = provider === 'openai' ? openaiModelSelect : geminiModelSelect;
+        const apiKeyInput = provider === 'openai' ? openaiApiKeyInput : geminiApiKeyInput;
+        
+        // Get API key if not provided
+        if (!apiKey) {
+            apiKey = apiKeyInput.value;
+        }
+        
+        try {
+            // Fetch models
+            const models = await fetchModelsForProvider(provider, apiKey);
+            
+            // Save current selection if any
+            const currentSelection = modelSelect.value;
+            
+            // Clear existing options
+            modelSelect.innerHTML = '';
+            
+            if (provider === 'openai') {
+                // Handle OpenAI models
+                models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    
+                    // Add a friendly label for some known models
+                    if (model === 'gpt-4-1106-preview') {
+                        option.textContent = `${model} (4.1nano)`;
+                    } else if (model === 'gpt-3.5-turbo') {
+                        option.textContent = `${model} (3.5)`;
+                    } else {
+                        option.textContent = model;
+                    }
+                    
+                    modelSelect.appendChild(option);
+                });
+            } else {
+                // Handle Gemini models - fetch the full objects with names
+                const geminiModels = await fetchGeminiModels(apiKey);
+                geminiModels.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.id;
+                    option.textContent = model.name;
+                    modelSelect.appendChild(option);
+                });
+            }
+            
+            // Restore previous selection if it exists in the new list
+            if (currentSelection && models.includes(currentSelection)) {
+                modelSelect.value = currentSelection;
+            }
+            
+            // If empty, set a default selection
+            if (modelSelect.options.length === 0) {
+                const defaultModel = provider === 'openai' ? 'gpt-4-1106-preview' : 'gemini-1.5-flash';
+                const option = document.createElement('option');
+                option.value = defaultModel;
+                option.textContent = defaultModel;
+                modelSelect.appendChild(option);
+            }
+            
+            // Save models to settings
+            chrome.storage.sync.get('settings', function(data) {
+                if (data.settings) {
+                    const settings = data.settings;
+                    if (provider === 'openai') {
+                        settings.openaiModels = models;
+                    } else {
+                        settings.geminiModels = models;
+                    }
+                    chrome.storage.sync.set({ settings });
+                }
+            });
+            
+        } catch (error) {
+            console.error(`Error fetching models for ${provider}:`, error);
+            
+            // Add a default option if fetch fails
+            if (modelSelect.options.length === 0) {
+                const defaultModel = provider === 'openai' ? 'gpt-4-1106-preview' : 'gemini-1.5-flash';
+                const option = document.createElement('option');
+                option.value = defaultModel;
+                option.textContent = defaultModel;
+                modelSelect.appendChild(option);
+            }
+        }
+    }
+    
     // Save settings
     saveSettingsButton.addEventListener('click', function() {
         const settings = {
             notionApiUrl: notionApiUrlInput.value.trim() || 'https://api.notion.com/v1',
             notionDatabaseId: notionDatabaseIdInput.value.trim() || '',
             notionApiKey: notionApiKeyInput.value.trim() || '',
-            geminiApiKey: geminiApiKeyInput.value.trim() || ''
+            geminiApiKey: geminiApiKeyInput.value.trim() || '',
+            openaiApiKey: openaiApiKeyInput.value.trim() || '',
+            modelProvider: modelProviderSelect.value || 'gemini',
+            geminiModel: geminiModelSelect.value || 'gemini-pro',
+            openaiModel: openaiModelSelect.value || 'gpt-4-1106-preview'
         };
         
         chrome.storage.sync.set({ settings }, function() {
@@ -129,8 +372,100 @@ document.addEventListener('DOMContentLoaded', function () {
                 notionDatabaseIdInput.value = data.settings.notionDatabaseId || '';
                 notionApiKeyInput.value = data.settings.notionApiKey || '';
                 geminiApiKeyInput.value = data.settings.geminiApiKey || '';
+                openaiApiKeyInput.value = data.settings.openaiApiKey || '';
+                modelProviderSelect.value = data.settings.modelProvider || 'gemini';
+                
+                // Set the model dropdowns if values exist
+                if (data.settings.geminiModel) {
+                    geminiModelSelect.value = data.settings.geminiModel;
+                }
+                
+                if (data.settings.openaiModel) {
+                    openaiModelSelect.value = data.settings.openaiModel;
+                }
+                
+                // Update visibility of provider settings
+                updateProviderSettingsVisibility(data.settings.modelProvider);
+                
+                // Populate model dropdowns with cached models if available
+                if (data.settings.geminiModels && data.settings.geminiModels.length > 0) {
+                    populateModelDropdownFromCache('gemini', data.settings.geminiModels, data.settings.geminiModel);
+                } else {
+                    // Fetch fresh models
+                    populateModelDropdown('gemini', data.settings.geminiApiKey);
+                }
+                
+                if (data.settings.openaiModels && data.settings.openaiModels.length > 0) {
+                    populateModelDropdownFromCache('openai', data.settings.openaiModels, data.settings.openaiModel);
+                } else {
+                    // Fetch fresh models
+                    populateModelDropdown('openai', data.settings.openaiApiKey);
+                }
+            } else {
+                // If no settings, initialize model dropdowns
+                populateModelDropdown('gemini');
+                populateModelDropdown('openai');
             }
         });
+    }
+    
+    // Function to populate model dropdown from cached models
+    function populateModelDropdownFromCache(provider, models, selectedModel) {
+        const modelSelect = provider === 'openai' ? openaiModelSelect : geminiModelSelect;
+        const apiKeyInput = provider === 'openai' ? openaiApiKeyInput : geminiApiKeyInput;
+        
+        // Clear existing options
+        modelSelect.innerHTML = '';
+        
+        if (provider === 'openai') {
+            // Add models to dropdown
+            models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model;
+                
+                // Add a friendly label for some known models
+                if (model === 'gpt-4-1106-preview') {
+                    option.textContent = `${model} (4.1nano)`;
+                } else if (model === 'gpt-3.5-turbo') {
+                    option.textContent = `${model} (3.5)`;
+                } else {
+                    option.textContent = model;
+                }
+                
+                modelSelect.appendChild(option);
+            });
+        } else {
+            // For Gemini, we need to fetch the display names
+            const apiKey = apiKeyInput.value;
+            fetchGeminiModels(apiKey).then(geminiModels => {
+                const modelMap = {};
+                geminiModels.forEach(model => {
+                    modelMap[model.id] = model.name;
+                });
+                
+                // Add models to dropdown
+                models.forEach(modelId => {
+                    const option = document.createElement('option');
+                    option.value = modelId;
+                    
+                    // Use the display name if available, otherwise use the ID
+                    option.textContent = modelMap[modelId] || modelId;
+                    
+                    modelSelect.appendChild(option);
+                });
+                
+                // Set the selected model if provided
+                if (selectedModel && models.includes(selectedModel)) {
+                    modelSelect.value = selectedModel;
+                }
+            });
+            return; // Exit early since we're handling selection in the promise
+        }
+        
+        // Set the selected model if provided
+        if (selectedModel && models.includes(selectedModel)) {
+            modelSelect.value = selectedModel;
+        }
     }
     
     // Function to get page information with retries
@@ -567,149 +902,227 @@ document.addEventListener('DOMContentLoaded', function () {
     
     // Replace the existing enhanceWithAI function with this improved version
     async function enhanceWithAI(pageData, apiKey, enhancementStyle = 'standard') {
-        // Update the model to gemini-2.0-pro-exp-02-05 as specified
-        const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-pro-exp-02-05:generateContent';
-        
-        // Create the JSON input structure for the AI
-        const inputJson = {
-            url: pageData.url || "Not available",
-            title: pageData.title || "Not available",
-            meta_description: pageData.description || null,
-            page_content: pageData.content ? pageData.content.substring(0, 4000) : "Not available"
-        };
-        
-        // Prepare the system prompt with style-specific instructions
-        let styleInstructions = "";
-        
-        switch(enhancementStyle) {
-            case 'detailed':
-                styleInstructions = `
-                    Create a DETAILED analysis with:
-                    - A comprehensive description (3-4 sentences)
-                    - 8-12 specific tags covering topics, technologies, and use cases
-                    - Include more technical terms where appropriate
-                `;
-                break;
-            case 'key-points':
-                styleInstructions = `
-                    Structure the response as KEY POINTS with:
-                    - A 1 sentence summary of what the site/tool does
-                    - 3-5 bullet points highlighting the main features/benefits 
-                    - 6-10 relevant tags focusing on capabilities and functions
-                `;
-                break;
-            case 'technical':
-                styleInstructions = `
-                    Create a TECHNICAL overview with:
-                    - Focus on technologies, frameworks, and technical capabilities
-                    - Emphasize technical aspects and specifications
-                    - Include technical terminology in the tags
-                    - The description should highlight technical features
-                `;
-                break;
-            default: // standard
-                styleInstructions = `
-                    Create a STANDARD enhancement with:
-                    - A concise 1-2 sentence summary
-                    - 5-8 relevant, focused tags
-                `;
+        try {
+            console.log(`Enhancing with AI using ${enhancementStyle} style`);
+            
+            return new Promise((resolve, reject) => {
+                chrome.storage.sync.get('settings', async function(data) {
+                    try {
+                        const settings = data.settings || {};
+                        const modelProvider = settings.modelProvider || 'gemini';
+                        
+                        let aiContent;
+                        
+                        if (modelProvider === 'openai') {
+                            // Use OpenAI
+                            const openaiApiKey = settings.openaiApiKey;
+                            const openaiModel = settings.openaiModel || 'gpt-4-1106-preview';
+                            
+                            if (!openaiApiKey) {
+                                throw new Error('OpenAI API key is required. Please configure it in settings.');
+                            }
+                            
+                            console.log(`Using OpenAI model ${openaiModel} for enhancement`);
+                            aiContent = await enhanceWithOpenAI(pageData, openaiApiKey, enhancementStyle, openaiModel);
+                        } else {
+                            // Use Gemini (default)
+                            const geminiApiKey = settings.geminiApiKey;
+                            const geminiModel = settings.geminiModel || 'gemini-pro';
+                            
+                            if (!geminiApiKey) {
+                                throw new Error('Gemini API key is required. Please configure it in settings.');
+                            }
+                            
+                            console.log(`Using Gemini model ${geminiModel} for enhancement`);
+                            // Use existing Gemini enhancement code with the selected model
+                            aiContent = await enhanceWithGemini(pageData, geminiApiKey, enhancementStyle, geminiModel);
+                        }
+                        
+                        // Update UI with AI content
+                        updateUIWithAIContent(aiContent);
+                        resolve(aiContent);
+                        
+                    } catch (error) {
+                        console.error('Error enhancing with AI:', error);
+                        showNotification(error.message, 'error');
+                        
+                        // Fall back to generate basic enhancement if possible
+                        const fallbackContent = generateFallbackEnhancement(pageData, enhancementStyle);
+                        updateUIWithAIContent(fallbackContent);
+                        resolve(fallbackContent); // Resolve with fallback content instead of rejecting
+                    }
+                });
+            });
+            
+        } catch (error) {
+            console.error('Error enhancing with AI:', error);
+            throw error;
+        }
+    }
+    
+    // Update enhanceWithGemini to use the selected model
+    async function enhanceWithGemini(pageData, apiKey, enhancementStyle = 'standard', model = 'gemini-1.5-flash') {
+        if (!apiKey) {
+            throw new Error('Gemini API key is required');
         }
         
-        const systemPrompt = `
-    ### **System Prompt**  
-    
-    You are an advanced AI specializing in **web content analysis and categorization**. Your task is to process the **URL, title, meta description** and **content** of a webpage and generate:  
-    
-    1. **Tags** – A list of relevant keywords that categorize the page's content effectively.
-    2. **Short Description** – A summary that clearly describes the website, tool, or resource. The description should be factual, direct, and engaging—avoiding any uncertainty.  
-    
-    ### **Enhancement Style**: ${enhancementStyle.toUpperCase()}
-    ${styleInstructions}
-    
-    ### **Purpose & Guidelines:**  
-    - The output will be used in a curated website list featuring tools and resources.  
-    - The description should clearly explain what the site/tool offers without generic phrases.
-    - If the meta description is vague or missing, extract meaning from the content.  
-    - Avoid broad, generic tags like "website", "information", or "news".  
-    - If the page lists multiple tools/resources, summarize the collection's purpose.  
-    
-    ### **Input:**  
-    ${JSON.stringify(inputJson, null, 2)}
-    
-    Respond ONLY with a JSON object containing:
-    1. A "tags" array with relevant tags
-    2. A "short_description" field with the summary
-    
-    Your response must be valid JSON that can be parsed with JSON.parse().
-    `;
-        
-        const requestData = {
-            contents: [
-                {
-                    role: "user",
-                    parts: [{ text: systemPrompt }]
-                }
-            ],
-            generationConfig: {
-                temperature: 0.2,
-                maxOutputTokens: 500
-            }
-        };
-        
         try {
-            const response = await fetch(`${apiUrl}?key=${apiKey}`, {
+            // Fetch available models to validate the selected model
+            const availableModels = await fetchGeminiModels(apiKey);
+            const availableModelIds = availableModels.map(m => m.id);
+            
+            // Check if the selected model is available
+            if (!availableModelIds.includes(model)) {
+                console.warn(`Model ${model} is not available. Falling back to gemini-1.5-flash or first available model.`);
+                
+                // Try to fallback to gemini-1.5-flash, or the first available model
+                model = availableModelIds.includes('gemini-1.5-flash') 
+                    ? 'gemini-1.5-flash' 
+                    : (availableModelIds[0] || 'gemini-pro');
+                
+                console.log(`Using fallback model: ${model}`);
+            }
+            
+            // Prepare the API URL with the provided API key and model
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            
+            // Create prompts based on enhancement style
+            let prompt = '';
+            
+            switch (enhancementStyle) {
+                case 'detailed':
+                    prompt = `You are an AI assistant that improves web page descriptions and generates relevant tags. 
+Given the following web page information, provide a comprehensive analysis with 150-200 words. 
+Generate 8-12 relevant tags that categorize the content effectively.
+
+Page Title: ${pageData.title}
+Page URL: ${pageData.url}
+Page Description: ${pageData.description || 'No description available'}
+
+Format your response exactly as follows:
+Description: [Your comprehensive analysis]
+Tags: [tag1, tag2, tag3, ...]`;
+                    break;
+                    
+                case 'key-points':
+                    prompt = `You are an AI assistant that improves web page descriptions and generates relevant tags. 
+Given the following web page information, extract 4-6 key points from the content and format them as bullet points. 
+Generate 6-8 relevant tags that highlight the main topics.
+
+Page Title: ${pageData.title}
+Page URL: ${pageData.url}
+Page Description: ${pageData.description || 'No description available'}
+
+Format your response exactly as follows:
+Description:
+• [Key point 1]
+• [Key point 2]
+• [Key point 3]
+...
+Tags: [tag1, tag2, tag3, ...]`;
+                    break;
+                    
+                case 'technical':
+                    prompt = `You are an AI assistant that improves web page descriptions and generates relevant tags. 
+Given the following web page information, focus on technical specifications, features, and capabilities. 
+Provide a technical summary of 100-150 words.
+Generate 6-10 technical tags related to technologies, methods, or specifications.
+
+Page Title: ${pageData.title}
+Page URL: ${pageData.url}
+Page Description: ${pageData.description || 'No description available'}
+
+Format your response exactly as follows:
+Description: [Your technical summary]
+Tags: [tag1, tag2, tag3, ...]`;
+                    break;
+                    
+                case 'standard':
+                default:
+                    prompt = `You are an AI assistant that improves web page descriptions and generates relevant tags. 
+Given the following web page information, provide a concise summary in 80-120 words. 
+Generate 5-8 relevant tags that accurately represent the content.
+
+Page Title: ${pageData.title}
+Page URL: ${pageData.url}
+Page Description: ${pageData.description || 'No description available'}
+
+Format your response exactly as follows:
+Description: [Your concise summary]
+Tags: [tag1, tag2, tag3, ...]`;
+                    break;
+            }
+            
+            // Define the request payload
+            const payload = {
+                contents: [
+                    {
+                        parts: [
+                            {
+                                text: prompt
+                            }
+                        ]
+                    }
+                ],
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 1000,
+                    topP: 0.8,
+                    topK: 40
+                }
+            };
+            
+            console.log(`Making request to Gemini API with model: ${model}`);
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(requestData)
+                body: JSON.stringify(payload)
             });
             
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error?.message || "Failed to process with AI");
+                throw new Error(errorData.error?.message || `Error calling Gemini API with model ${model}`);
             }
             
-            const responseData = await response.json();
+            const data = await response.json();
             
-            // Get the text response from the AI
-            const aiText = responseData.candidates[0]?.content?.parts[0]?.text;
+            // Extract the AI-generated text
+            const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
             
-            if (!aiText) {
-                throw new Error("No response from AI");
+            // Extract description and tags from AI response
+            const descriptionMatch = aiText.match(/Description:(.*?)(?=Tags:|$)/s);
+            const tagsMatch = aiText.match(/Tags:(.*?)$/s);
+            
+            let description = '';
+            let tags = [];
+            
+            if (descriptionMatch && descriptionMatch[1]) {
+                description = descriptionMatch[1].trim();
             }
             
-            // Try to extract the JSON object from the response
-            try {
-                // Find JSON content - look for content between curly braces
-                const jsonMatch = aiText.match(/\{[\s\S]*\}/);
-                if (!jsonMatch) {
-                    throw new Error("No valid JSON found in response");
-                }
-                
-                const jsonContent = jsonMatch[0];
-                const parsedResponse = JSON.parse(jsonContent);
-                
-                // Extract tags and description from JSON response
-                const tags = Array.isArray(parsedResponse.tags) ? parsedResponse.tags : [];
-                const shortDescription = parsedResponse.short_description || "";
-                
-                return { 
-                    tags, 
-                    shortDescription,
-                    enhancementStyle // Include the style used for reference
-                };
-            } catch (jsonError) {
-                console.error("Failed to parse AI response JSON:", jsonError);
-                
-                // More robust fallback parsing
+            if (tagsMatch && tagsMatch[1]) {
+                // Extract tags and clean them up
+                const tagsText = tagsMatch[1].trim();
+                tags = tagsText.split(',')
+                    .map(tag => tag.trim())
+                    .filter(tag => tag.length > 0);
+            }
+            
+            // If parsing fails, attempt fallback parsing
+            if (!description && !tags.length) {
                 return fallbackResponseParsing(aiText, enhancementStyle);
             }
-        } catch (fetchError) {
-            console.error("AI enhancement API error:", fetchError);
             
-            // If the API call fails completely, generate a basic response from existing data
-            return generateFallbackEnhancement(pageData, enhancementStyle);
+            return {
+                description,
+                tags,
+                model: model // Include the model used for reference
+            };
+        } catch (error) {
+            console.error(`Error with Gemini API (${model}):`, error);
+            throw error;
         }
     }
     
@@ -754,221 +1167,151 @@ document.addEventListener('DOMContentLoaded', function () {
         };
     }
     
-    // New function: Generate a basic enhancement when API fails
+    // Fallback enhancement generator when AI service fails
     function generateFallbackEnhancement(pageData, enhancementStyle) {
-        // Extract potential tags from title and description
-        let possibleTags = [];
-        let title = pageData.title || "";
-        let description = pageData.description || "";
+        console.log("Generating fallback enhancement for style:", enhancementStyle);
         
-        // Get words from title and description
+        // Generate a basic description from the page data
+        const title = pageData.title || "";
+        const url = pageData.url || "";
+        const domain = new URL(url).hostname.replace('www.', '');
+        
+        let description = "";
+        let tags = [];
+        
+        // Generate description based on available data
+        if (pageData.description && pageData.description.length > 10) {
+            description = pageData.description;
+        } else {
+            // Create a basic description based on the title and domain
+            description = `${title} - A resource found at ${domain}.`;
+        }
+        
+        // Extract potential tags from title and URL
         const titleWords = title.split(/\s+/);
-        const descriptionWords = description.split(/\s+/);
         
-        // Filter for words that could be tags (longer than 3 chars, not stopwords)
-        const stopwords = ['the', 'and', 'for', 'with', 'that', 'this', 'from', 'your'];
+        // Filter out common words and short words, then convert to lowercase for tags
+        const commonWords = ["the", "and", "a", "an", "in", "on", "at", "to", "for", "with", "by", "of", "is", "are"];
+        const potentialTags = titleWords
+            .filter(word => word.length > 3 && !commonWords.includes(word.toLowerCase()))
+            .map(word => word.replace(/[^\w\s]/g, '').toLowerCase())
+            .filter(word => word.length > 3)
+            .slice(0, 5);  // Take at most 5 tags
         
-        titleWords.forEach(word => {
-            word = word.replace(/[^\w]/g, '').toLowerCase();
-            if (word.length > 3 && !stopwords.includes(word)) {
-                possibleTags.push(word);
-            }
-        });
-        
-        // Add domain name as a tag if available
-        try {
-            const url = new URL(pageData.url);
-            const domain = url.hostname.replace('www.', '').split('.')[0];
-            if (domain && domain.length > 1) {
-                possibleTags.push(domain);
-            }
-        } catch(e) {}
-        
-        // Remove duplicates and limit to 5 tags
-        const uniqueTags = [...new Set(possibleTags)].slice(0, 5);
+        // Add domain as a tag
+        tags = [...new Set([domain.split('.')[0], ...potentialTags])];
         
         return {
-            tags: uniqueTags,
-            shortDescription: description || title || "Website saved from tab",
-            enhancementStyle,
-            fallbackGenerated: true // Flag that this was generated as fallback
+            description: description,
+            tags: tags
         };
     }
     
-    // Add this handler for enhance options
-    document.addEventListener('DOMContentLoaded', function() {
-        // Add event handlers for enhancement options
-        document.querySelectorAll('.enhance-option').forEach(option => {
-            option.addEventListener('click', function() {
-                const style = this.getAttribute('data-style');
-                enhanceContent(style);
-            });
-        });
-        
-        
-        // Function to handle enhancement with specific style
-        function enhanceContent(enhancementStyle) {
-            if (aiEnhanced) {
-                // If already enhanced, ask user if they want to re-enhance
-                if (!confirm("Content is already enhanced. Enhance again with " + 
-                          enhancementStyle + " style?")) {
-                    return;
-                }
-            }
-            
-            // Rest of your AI enhancement logic here, passing the style parameter
-            // to the enhanceWithAI function
-            
-            // Check if Gemini API key is available
-            chrome.storage.sync.get('settings', function(data) {
-                if (!data.settings || !data.settings.geminiApiKey) {
-                    showNotification('Gemini API key is required for AI enhancement. Please add your API key in the settings.', 'error');
-                    
-                    // Auto-show settings after a delay
-                    setTimeout(() => {
-                        showSettings();
-                    }, 1500);
-                    return;
-                }
-                
-                // Show loading notification
-                const loadingNotification = showNotification(`Analyzing content with ${enhancementStyle} style...`, 'info', 0);
-                
-                // Add loading spinner to notification content
-                const notificationContent = loadingNotification.querySelector('.notification-content');
-                notificationContent.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <div class="ai-spinner"></div>
-                        <span>Analyzing with ${enhancementStyle} style...</span>
-                    </div>
-                `;
-                
-                // Disable enhance button while processing
-                document.getElementById('ai-enhance-button').disabled = true;
-                
-                // Get the current page info
-                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                    if (tabs[0]) {
-                        chrome.tabs.sendMessage(tabs[0].id, { action: "getPageInfo" }, async (response) => {
-                            if (response) {
-                                try {
-                                    // Pass the enhancement style to the AI function
-                                    const enhancedContent = await enhanceWithAI(
-                                        response, 
-                                        data.settings.geminiApiKey,
-                                        enhancementStyle
-                                    );
-                                    
-                                    // Update UI with enhanced content
-                                    updateUIWithAIContent(enhancedContent);
-                                    
-                                    // Set flag that content has been enhanced
-                                    aiEnhanced = true;
-                                    
-                                    // Remove loading notification
-                                    removeNotification(loadingNotification);
-                                    
-                                    // Add success indicator
-                                    const statusIndicator = document.createElement('div');
-                                    statusIndicator.className = 'ai-status-indicator';
-                                    statusIndicator.innerHTML = `
-                                        <svg width="12" height="12" viewBox="0 0 24 24">
-                                            <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
-                                        </svg>
-                                        <span>${enhancedContent.fallbackGenerated ? 'Basic' : 
-                                               enhancedContent.fallbackParsed ? 'Partial' : 
-                                               'Full'} enhancement with ${enhancementStyle} style</span>
-                                    `;
-                                    
-                                    // Add status indicator to description container
-                                    const descContainer = document.querySelector('.preview-item:last-child');
-                                    if (descContainer) {
-                                        // Remove any existing status indicators
-                                        descContainer.querySelectorAll('.ai-status-indicator').forEach(el => el.remove());
-                                        descContainer.appendChild(statusIndicator);
-                                    }
-                                    
-                                } catch (error) {
-                                    console.error("AI enhancement error:", error);
-                                    removeNotification(loadingNotification);
-                                    showNotification(`AI enhancement failed: ${error.message}`, 'error');
-                                    
-                                    // Add error indicator
-                                    const errorIndicator = document.createElement('div');
-                                    errorIndicator.className = 'ai-status-indicator error';
-                                    errorIndicator.innerHTML = `
-                                        <svg width="12" height="12" viewBox="0 0 24 24">
-                                            <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
-                                        </svg>
-                                        <span>Enhancement failed - using original content</span>
-                                    `;
-                                    
-                                    // Add error indicator
-                                    const descContainer = document.querySelector('.preview-item:last-child');
-                                    if (descContainer) {
-                                        descContainer.querySelectorAll('.ai-status-indicator').forEach(el => el.remove());
-                                        descContainer.appendChild(errorIndicator);
-                                    }
-                                } finally {
-                                    // Re-enable the enhance button
-                                    document.getElementById('ai-enhance-button').disabled = false;
-                                }
-                            } else {
-                                removeNotification(loadingNotification);
-                                showNotification("Couldn't retrieve page content", "error");
-                                document.getElementById('ai-enhance-button').disabled = false;
-                            }
-                        });
-                    }
-                });
-            });
-        }
-    });
-    
-    // Function to update the UI with AI-generated content
+    // Function to update the UI with AI-enhanced content
     function updateUIWithAIContent(aiContent) {
-        // Insert AI-generated tags section if there are any new tags
-        if (aiContent.tags && Array.isArray(aiContent.tags) && aiContent.tags.length > 0) {
-            // Add the AI-generated tags that aren't already in manualTags
+        if (!aiContent) {
+            showNotification("AI enhancement failed. Using original content.", "error");
+            return;
+        }
+        
+        // Get the current description and URL
+        const descriptionInput = document.getElementById('description-input');
+        
+        // Update the description with the AI-enhanced content if available
+        if (aiContent.description) {
+            descriptionInput.value = aiContent.description;
+        } else if (aiContent.shortDescription) {
+            // For backward compatibility with older content format
+            descriptionInput.value = aiContent.shortDescription;
+        }
+        
+        // Update the tags if they are provided
+        if (aiContent.tags && aiContent.tags.length > 0) {
+            // Clear existing manual tags
+            manualTags = [];
+            
+            // Add the AI-generated tags
             aiContent.tags.forEach(tag => {
-                // Ensure tag is a string before adding
-                const tagStr = typeof tag === 'object' ? JSON.stringify(tag) : String(tag).trim();
-                if (tagStr && !manualTags.includes(tagStr)) {
-                    manualTags.push(tagStr);
-                }
+                addTag(tag);
             });
             
             // Render the updated tags
             renderManualTags();
         }
         
-        // Update description with AI-generated description if available
-        if (aiContent.shortDescription) {
-            const descriptionInput = document.getElementById('description-input');
-            if (descriptionInput) {
-                // Handle the case where shortDescription is a complex object with KEY-POINTS
-                if (typeof aiContent.shortDescription === 'object') {
-                    // Check if it has KEY-POINTS array
-                    if (aiContent.shortDescription['KEY-POINTS'] && Array.isArray(aiContent.shortDescription['KEY-POINTS'])) {
-                        // Format the key points as a nicely formatted string
-                        const keyPoints = aiContent.shortDescription['KEY-POINTS']
-                            .map(point => point.trim())
-                            .join('\n\n');
-                        descriptionInput.value = keyPoints;
-                    } else {
-                        // Fallback for other object formats
-                        descriptionInput.value = JSON.stringify(aiContent.shortDescription);
-                    }
-                } else {
-                    // Handle regular string descriptions
-                    descriptionInput.value = String(aiContent.shortDescription);
-                }
+        // Save the enhanced content to localStorage
+        saveEnhancedContentToStorage(aiContent);
+        
+        // Indicate that the content has been AI-enhanced
+        aiEnhanced = true;
+        
+        // Update the UI to reflect the enhancement
+        const aiEnhanceButton = document.getElementById('ai-enhance-button');
+        aiEnhanceButton.classList.add('enhanced');
+        
+        // Create a small label to show which model was used
+        const modelUsed = aiContent.model || 'AI';
+        const modelIndicator = document.createElement('div');
+        modelIndicator.className = 'model-indicator';
+        modelIndicator.innerHTML = `Enhanced using: ${modelUsed}`;
+        modelIndicator.style.fontSize = '10px';
+        modelIndicator.style.marginTop = '4px';
+        modelIndicator.style.color = '#666';
+        
+        // Add the indicator below the description field
+        const descriptionContainer = document.querySelector('.preview-item:last-child');
+        if (descriptionContainer) {
+            // Remove any existing model indicators
+            const existingIndicator = descriptionContainer.querySelector('.model-indicator');
+            if (existingIndicator) {
+                existingIndicator.remove();
             }
+            
+            descriptionContainer.appendChild(modelIndicator);
         }
+        
+        // Show a success notification
+        showNotification("Content enhanced with AI!", "success", 2000);
     }
     
+    // Add this function to save enhanced content to localStorage
+    function saveEnhancedContentToStorage(enhancementData) {
+        localStorage.setItem('tabflow_enhanced_content', JSON.stringify({
+            timestamp: Date.now(),
+            data: enhancementData
+        }));
+    }
+    
+    // Add this function to load enhanced content from localStorage
+    function loadEnhancedContentFromStorage() {
+        const savedContent = localStorage.getItem('tabflow_enhanced_content');
+        if (savedContent) {
+            try {
+                const parsedContent = JSON.parse(savedContent);
+                // Check if the content is recent (last 24 hours)
+                const isRecent = (Date.now() - parsedContent.timestamp) < 24 * 60 * 60 * 1000;
+                
+                if (isRecent && parsedContent.data) {
+                    updateUIWithAIContent(parsedContent.data);
+                    // Remove from localStorage after loading
+                    localStorage.removeItem('tabflow_enhanced_content');
+                    return true;
+                }
+            } catch (e) {
+                console.error('Error parsing saved enhanced content:', e);
+            }
+        }
+        return false;
+    }
+
     // Start getting page info when popup opens
     getPageInformation();
+    
+    // Try to load previously enhanced content
+    const hasLoadedContent = loadEnhancedContentFromStorage();
+    if (hasLoadedContent) {
+        showNotification("Loaded previously enhanced content!", "success", 2000);
+    }
     
     // Make sure main content is visible on load (unless coming from a redirect)
     showMainContent();
@@ -1011,126 +1354,236 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
     
-    // The enhanceContent function to implement enhancement with specific style
+    // Function to handle enhancement with specific style
     function enhanceContent(enhancementStyle) {
         if (aiEnhanced) {
-            // Replace the confirm with custom dialog
-            showConfirmDialog(`Content is already enhanced. Enhance again with ${enhancementStyle} style?`, () => {
-                // This runs when user confirms
-                processEnhancement(enhancementStyle);
+            // Use the styled confirmation notification
+            showStyledConfirmNotification(`Enhance again with "${enhancementStyle}" style?`, {
+                icon: 'star',
+                primaryBtnText: 'Enhance',
+                secondaryBtnText: 'Cancel',
+                onPrimaryClick: proceedWithEnhancement,
+                onSecondaryClick: () => {}
             });
-        } else {
-            // Directly process enhancement if not already enhanced
-            processEnhancement(enhancementStyle);
+            
+            return;
         }
         
-        // Move the actual enhancement logic to a separate function
-        function processEnhancement(style) {
-            // Check if Gemini API key is available
+        proceedWithEnhancement();
+        
+        function proceedWithEnhancement() {
+            // Show loading state in the UI
+            const descriptionInput = document.getElementById('description-input');
+            if (descriptionInput) {
+                descriptionInput.value = "Loading AI enhancement...";
+            }
+            
+            // Disable the enhance button during processing
+            const enhanceButton = document.getElementById('ai-enhance-button');
+            if (enhanceButton) {
+                enhanceButton.disabled = true;
+                enhanceButton.innerHTML = '<span class="loading-dots"></span>';
+            }
+            
+            // Check if API key is available for the selected provider
             chrome.storage.sync.get('settings', function(data) {
-                if (!data.settings || !data.settings.geminiApiKey) {
-                    showNotification('Gemini API key is required for AI enhancement. Please add your API key in the settings.', 'error');
+                if (!data.settings) {
+                    showNotification("Settings not configured. Please set up your API keys.", "error");
+                    enableEnhanceButton();
+                    return;
+                }
+                
+                const settings = data.settings;
+                const modelProvider = settings.modelProvider || 'gemini';
+                
+                if (modelProvider === 'openai' && !settings.openaiApiKey) {
+                    showNotification("OpenAI API key is required. Please configure it in settings.", "error");
                     
                     // Auto-show settings after a delay
                     setTimeout(() => {
                         showSettings();
                     }, 1500);
+                    
+                    enableEnhanceButton();
+                    return;
+                } else if (modelProvider === 'gemini' && !settings.geminiApiKey) {
+                    showNotification("Gemini API key is required. Please configure it in settings.", "error");
+                    
+                    // Auto-show settings after a delay
+                    setTimeout(() => {
+                        showSettings();
+                    }, 1500);
+                    
+                    enableEnhanceButton();
                     return;
                 }
                 
-                // Rest of your existing enhancement implementation...
-                const loadingNotification = showNotification(`Enhancing with ${style} style...`, 'info', 0);
+                // Show loading notification
+                const loadingNotification = showNotification(`Analyzing content with ${enhancementStyle} style...`, 'info', 0);
                 
                 // Add loading spinner to notification content
                 const notificationContent = loadingNotification.querySelector('.notification-content');
                 notificationContent.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <div class="ai-spinner"></div>
-                        <span>Enhancing with ${style} style...</span>
+                        <span>Analyzing with ${enhancementStyle} style using ${modelProvider === 'openai' ? settings.openaiModel : settings.geminiModel}...</span>
                     </div>
                 `;
                 
-                // Disable enhance button while processing
-                document.getElementById('ai-enhance-button').disabled = true;
+                // Create a copy of pageInfo for enhancement
+                const enhancementData = {
+                    pageInfo: JSON.parse(JSON.stringify(pageInfo)),
+                    enhancementStyle: enhancementStyle,
+                    settings: {
+                        modelProvider: modelProvider,
+                        apiKey: modelProvider === 'openai' ? settings.openaiApiKey : settings.geminiApiKey,
+                        model: modelProvider === 'openai' ? settings.openaiModel : settings.geminiModel
+                    }
+                };
                 
                 // Get the current page info and enhance it
-                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                    if (tabs[0]) {
-                        chrome.tabs.sendMessage(tabs[0].id, { action: "getPageInfo" }, async (response) => {
-                            if (response) {
-                                try {
-                                    const enhancedContent = await enhanceWithAI(
-                                        response, 
-                                        data.settings.geminiApiKey,
-                                        style
-                                    );
-                                    
-                                    // Update UI with enhanced content
-                                    updateUIWithAIContent(enhancedContent);
-                                    
-                                    // Set flag that content has been enhanced
-                                    aiEnhanced = true;
-                                    
-                                    // Remove loading notification
-                                    removeNotification(loadingNotification);
-                                    
-                                    // Show success notification or indicator
-                                    // ...
-                                    
-                                } catch (error) {
-                                    console.error("AI enhancement error:", error);
-                                    removeNotification(loadingNotification);
-                                    showNotification(`AI enhancement failed: ${error.message}`, 'error');
-                                } finally {
-                                    // Re-enable the enhance button
-                                    document.getElementById('ai-enhance-button').disabled = false;
-                                }
-                            } else {
-                                removeNotification(loadingNotification);
-                                showNotification("Couldn't retrieve page content", "error");
-                                document.getElementById('ai-enhance-button').disabled = false;
+                try {
+                    // Create a worker to handle the enhancement in the background
+                    const worker = new Worker(URL.createObjectURL(new Blob([`
+                        // Worker script for handling AI enhancement in the background
+                        self.onmessage = async function(e) {
+                            const { data } = e;
+                            try {
+                                // This is just a placeholder to signal that processing has started
+                                // The actual enhancement is done in the main thread
+                                self.postMessage({ status: 'started' });
+                            } catch (error) {
+                                self.postMessage({ status: 'error', error: error.message });
                             }
-                        });
-                    }
-                });
+                        };
+                    `], { type: 'application/javascript' })));
+                    
+                    // Listen for messages from the worker
+                    worker.onmessage = function(e) {
+                        // Just to keep the worker running until we're done
+                        if (e.data.status === 'started') {
+                            console.log('Enhancement worker started');
+                        }
+                    };
+                    
+                    // Start the worker
+                    worker.postMessage(enhancementData);
+                    
+                    // Save the enhancement data to localStorage
+                    localStorage.setItem('tabflow_enhancement_in_progress', JSON.stringify(enhancementData));
+                    
+                    enhanceWithAI(
+                        pageInfo, 
+                        modelProvider === 'openai' ? settings.openaiApiKey : settings.geminiApiKey,
+                        enhancementStyle
+                    ).then((aiContent) => {
+                        // Save the enhanced content to localStorage
+                        if (aiContent) {
+                            saveEnhancedContentToStorage(aiContent);
+                        }
+                        
+                        // Remove the in-progress flag
+                        localStorage.removeItem('tabflow_enhancement_in_progress');
+                        
+                        // Update UI 
+                        removeNotification(loadingNotification);
+                        enableEnhanceButton();
+                        
+                        // This is done inside enhanceWithAI via updateUIWithAIContent already
+                    }).catch(error => {
+                        console.error("AI enhancement error:", error);
+                        removeNotification(loadingNotification);
+                        showNotification(`AI enhancement failed: ${error.message}`, 'error');
+                        enableEnhanceButton();
+                        
+                        // Remove the in-progress flag
+                        localStorage.removeItem('tabflow_enhancement_in_progress');
+                    });
+                } catch (error) {
+                    console.error("Error starting AI enhancement:", error);
+                    removeNotification(loadingNotification);
+                    showNotification(`Failed to start AI enhancement: ${error.message}`, 'error');
+                    enableEnhanceButton();
+                    
+                    // Remove the in-progress flag
+                    localStorage.removeItem('tabflow_enhancement_in_progress');
+                }
             });
+        }
+        
+        // Helper function to re-enable the enhance button
+        function enableEnhanceButton() {
+            if (enhanceButton) {
+                enhanceButton.disabled = false;
+                enhanceButton.innerHTML = `
+                    <svg class="button-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 16L12 15.45 7.77 18l1.12-4.81-3.73-3.23 4.92-.42L12 5l1.92 4.53 4.92.42-3.73 3.23L16.23 18z"/>
+                    </svg>
+                    <span>Enhance</span>
+                    <svg class="dropdown-arrow" width="10" height="10" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M7 10l5 5 5-5z"/>
+                    </svg>
+                `;
+            }
+        }
+    }
+
+    // Add code to check for and resume any in-progress enhancement
+    function checkForInProgressEnhancement() {
+        const inProgressData = localStorage.getItem('tabflow_enhancement_in_progress');
+        if (inProgressData) {
+            try {
+                const enhancementData = JSON.parse(inProgressData);
+                // Check if the data is recent (within the last hour)
+                const isRecent = enhancementData.timestamp && 
+                    (Date.now() - enhancementData.timestamp < 60 * 60 * 1000);
+                
+                if (isRecent) {
+                    // Use the styled confirmation notification
+                    showStyledConfirmNotification(
+                        'Enhancement was in progress when popup closed. Would you like to check results?', 
+                        {
+                            icon: 'info',
+                            primaryBtnText: 'Check results',
+                            secondaryBtnText: 'Dismiss',
+                            onPrimaryClick: () => {
+                                loadEnhancedContentFromStorage();
+                                localStorage.removeItem('tabflow_enhancement_in_progress');
+                            },
+                            onSecondaryClick: () => {
+                                localStorage.removeItem('tabflow_enhancement_in_progress');
+                            }
+                        }
+                    );
+                } else {
+                    // Remove old in-progress data
+                    localStorage.removeItem('tabflow_enhancement_in_progress');
+                }
+            } catch (e) {
+                console.error('Error checking for in-progress enhancement:', e);
+                localStorage.removeItem('tabflow_enhancement_in_progress');
+            }
         }
     }
     
-    // Add this function to handle custom confirmations
-    function showConfirmDialog(message, onConfirm) {
-        const dialog = document.getElementById('confirm-dialog');
-        const messageElement = document.getElementById('confirm-dialog-message');
-        const okButton = document.getElementById('confirm-dialog-ok');
-        const cancelButton = document.getElementById('confirm-dialog-cancel');
-        const closeButton = document.querySelector('.confirm-close');
-        
-        // Set the message
-        messageElement.textContent = message;
-        
-        // Show the dialog
-        dialog.style.display = "block";
-        
-        // Set up event handlers
-        const closeDialog = () => {
-            dialog.style.display = "none";
-        };
-        
-        // Handle OK button
-        okButton.onclick = () => {
-            closeDialog();
-            onConfirm();
-        };
-        
-        // Handle Cancel button and close button
-        cancelButton.onclick = closeDialog;
-        closeButton.onclick = closeDialog;
-        
-        // Close when clicking outside the dialog
-        window.addEventListener('click', function(event) {
-            if (event.target === dialog) {
-                closeDialog();
-            }
-        }, { once: true });
-    }
+    // Call this function when the popup opens
+    checkForInProgressEnhancement();
+
+    // Make sure main content is visible on load (unless coming from a redirect)
+    showMainContent();
+
+    // Process the enhancement request is now called by enhanceContent
+
+    // Add API key input change listeners to fetch models when API keys are entered
+    geminiApiKeyInput.addEventListener('blur', function() {
+        if (this.value && this.value.trim().length > 0) {
+            populateModelDropdown('gemini', this.value);
+        }
+    });
+    
+    openaiApiKeyInput.addEventListener('blur', function() {
+        if (this.value && this.value.trim().length > 0) {
+            populateModelDropdown('openai', this.value);
+        }
+    });
 });

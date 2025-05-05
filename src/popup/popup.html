@@ -8,6 +8,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="popup.css">
     <title>Web Clipper</title>
+    <style>
+        .provider-settings {
+            display: none;
+        }
+        .provider-settings.active {
+            display: block;
+        }
+    </style>
 </head>
 <body>
     <div class="background"></div>
@@ -28,10 +36,48 @@
                     <label for="notion-api-key">Notion API Key</label>
                     <input type="password" id="notion-api-key" class="settings-input" placeholder="secret_your_notion_api_key">
                 </div>
-                <div class="form-group">
-                    <label for="gemini-api-key">Gemini API Key (for AI enhancement with 2.0 flash model)</label>
-                    <input type="password" id="gemini-api-key" class="settings-input" placeholder="Required for AI enhancement features">
+
+                <div class="settings-section">
+                    <h3>AI Enhancement Settings</h3>
+                    <div class="form-group">
+                        <label for="model-provider">AI Model Provider</label>
+                        <select id="model-provider" class="settings-input">
+                            <option value="gemini">Google Gemini</option>
+                            <option value="openai">OpenAI</option>
+                        </select>
+                    </div>
+
+                    <!-- Gemini Settings -->
+                    <div id="gemini-settings" class="provider-settings active">
+                        <div class="form-group">
+                            <label for="gemini-api-key">Gemini API Key</label>
+                            <input type="password" id="gemini-api-key" class="settings-input" placeholder="Required for Gemini AI enhancement">
+                        </div>
+                        <div class="form-group">
+                            <label for="gemini-model">Gemini Model</label>
+                            <select id="gemini-model" class="settings-input">
+                                <!-- Will be populated dynamically -->
+                                <option value="gemini-pro">gemini-pro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- OpenAI Settings -->
+                    <div id="openai-settings" class="provider-settings">
+                        <div class="form-group">
+                            <label for="openai-api-key">OpenAI API Key</label>
+                            <input type="password" id="openai-api-key" class="settings-input" placeholder="Required for OpenAI enhancement">
+                        </div>
+                        <div class="form-group">
+                            <label for="openai-model">OpenAI Model</label>
+                            <select id="openai-model" class="settings-input">
+                                <!-- Will be populated dynamically -->
+                                <option value="gpt-4-1106-preview">gpt-4-1106-preview (4.1nano)</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
+
                 <div class="form-group donation-container">
                     <hr class="donation-divider">
                     <a href="https://buymeacoffee.com/jonathan.g" target="_blank" class="donation-link">
@@ -128,6 +174,6 @@
             </div>
         </div>
     </div>
-    <script src="popup.js"></script>
+    <script src="popup.js" type="module"></script>
 </body>
 </html>

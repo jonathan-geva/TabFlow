@@ -9,7 +9,8 @@
     "storage"
   ],
   "background": {
-    "service_worker": "src/background.js"
+    "service_worker": "src/background.js",
+    "type": "module"
   },
   "action": {
     "default_popup": "src/popup/popup.html",
@@ -21,7 +22,8 @@
   },
   "host_permissions": [
     "https://api.notion.com/*",
-    "https://generativelanguage.googleapis.com/*"
+    "https://generativelanguage.googleapis.com/*",
+    "https://api.openai.com/*"
   ],
   "content_scripts": [
     {

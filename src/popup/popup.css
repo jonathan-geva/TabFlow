@@ -1291,3 +1291,40 @@ a:hover {
 .coffee-icon {
   flex-shrink: 0;
 }
+
+/* Notification button styles */
+.notification-button {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.notification-button:hover {
+    transform: translateY(-1px);
+}
+
+.notification-button:active {
+    transform: translateY(1px);
+}
+
+.notification-button.confirm {
+    background-color: #3082ce;
+    color: white;
+}
+
+.notification-button.confirm:hover {
+    background-color: #2a75bb;
+}
+
+.notification-button.cancel {
+    background-color: #e3e3e3;
+    color: #333;
+}
+
+.notification-button.cancel:hover {
+    background-color: #d5d5d5;
+}

@@ -11,7 +11,13 @@ chrome.runtime.onInstalled.addListener(() => {
                 notionApiUrl: 'https://api.notion.com/v1',
                 notionDatabaseId: '',
                 notionApiKey: '',
-                geminiApiKey: ''
+                geminiApiKey: '',
+                openaiApiKey: '',
+                modelProvider: 'gemini', // default to gemini, options: 'gemini', 'openai'
+                geminiModel: 'gemini-1.5-flash', // default Gemini model - fastest model
+                openaiModel: 'gpt-4-1106-preview', // default OpenAI model (4.1nano)
+                geminiModels: [], // will be populated with available models
+                openaiModels: []  // will be populated with available models
             };
             chrome.storage.sync.set({ settings: defaultSettings });
         }
